@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-function Navigation() {
+function Navigation({ userInfo }) {
   return (
     <nav style={styles.nav}>
       <div style={styles.container}>
@@ -15,11 +15,19 @@ function Navigation() {
               주식 골라보기
             </Link>
           </li>
-          <li>
-            <Link to="/login" style={styles.link}>
-              내 계좌
-            </Link>
-          </li>
+          {userInfo.email ? (
+            <li>
+              <Link to="/account" style={styles.link}>
+                내 계좌
+              </Link>
+            </li>
+          ) : (
+            <li>
+              <Link to="/login" style={styles.link}>
+                로그인
+              </Link>
+            </li>
+          )}
         </ul>
       </div>
     </nav>
