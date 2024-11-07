@@ -99,7 +99,6 @@ class BybitWebSocket {
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("Received WebSocket data:", data);
 
         // 응답이 구독 성공 메시지인 경우 처리
         if (data.success !== undefined) {
@@ -123,7 +122,6 @@ class BybitWebSocket {
                 volume: parseFloat(klineData.volume),
                 timestamp: klineData.start,
               };
-              console.log("Transformed kline data:", transformedData);
               this.onMessage(transformedData);
             }
           }
@@ -137,7 +135,6 @@ class BybitWebSocket {
                 lastPrice: tickerData.lastPrice,
                 price24hPcnt: tickerData.price24hPcnt,
               };
-              console.log("Transformed ticker data:", transformedData);
               this.onMessage(transformedData);
             }
           }

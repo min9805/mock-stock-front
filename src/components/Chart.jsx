@@ -1,17 +1,19 @@
 import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 import BybitWebSocket from "./websocket";
+import { useParams } from "react-router-dom";
 
 class Datafeed {
-  constructor() {
+  constructor(symbol) {
     this.data = [];
     this.lastLoadedTime = Date.now();
+    this.symbol = symbol;
   }
 
   async getBars(count) {
     try {
       const response = await fetch(
-        `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=1&end=${this.lastLoadedTime}&limit=${count}`
+        `https://api.bybit.com/v5/market/kline?category=linear&symbol=${this.symbol}&interval=1&end=${this.lastLoadedTime}&limit=${count}`
       );
       const result = await response.json();
 
@@ -67,6 +69,7 @@ class Datafeed {
 
 function Chart() {
   const seriesRef = useRef(null);
+  const { symbol } = useParams();
 
   useEffect(() => {
     console.log("Chart useEffect called");
@@ -107,8 +110,6 @@ function Chart() {
       // 웹소켓 연결 및 메시지 핸들러 설정
       websocket = new BybitWebSocket((data) => {
         if (data && data.type === "kline") {
-          console.log("Received kline data:", data);
-
           const candleData = {
             time: data.time,
             open: data.open,
@@ -119,7 +120,6 @@ function Chart() {
 
           // 유효한 데이터인지 확인
           if (!Object.values(candleData).some(isNaN)) {
-            console.log("Updating chart with data:", candleData);
             if (seriesRef.current) {
               seriesRef.current.update(candleData);
             }
@@ -131,10 +131,10 @@ function Chart() {
 
       // 1분봉 구독
       setTimeout(() => {
-        websocket.subscribe("kline", "BTCUSDT", "1");
+        websocket.subscribe("kline", symbol, "1");
       }, 1000);
 
-      const datafeed = new Datafeed();
+      const datafeed = new Datafeed(symbol);
       const initialData = await datafeed.getBars(200);
 
       if (initialData.length > 0) {

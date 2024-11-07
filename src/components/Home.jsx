@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import BybitWebSocket from "./websocket";
 
 function Home() {
+  const navigate = useNavigate();
   const [prices, setPrices] = useState({
     BTC: { price: "0", change: "0%" },
     ETH: { price: "0", change: "0%" },
@@ -12,8 +13,6 @@ function Home() {
     console.log("Starting WebSocket connection...");
 
     const ws = new BybitWebSocket((data) => {
-      console.log("Received transformed data:", data);
-
       if (data.type === "ticker" && data.lastPrice && data.price24hPcnt) {
         const price = parseFloat(data.lastPrice);
         const change = parseFloat(data.price24hPcnt);
@@ -48,8 +47,12 @@ function Home() {
     };
   }, []);
 
+  const handleCardClick = (symbol) => {
+    navigate(`/chart/${symbol}`);
+  };
+
   const CryptoCard = ({ name, symbol, price, change }) => (
-    <div style={styles.stockCard}>
+    <div style={styles.stockCard} onClick={() => handleCardClick(symbol)}>
       <div style={styles.stockInfo}>
         <h3 style={styles.stockName}>{name}</h3>
         <p style={styles.stockSymbol}>{symbol}</p>
