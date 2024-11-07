@@ -1,31 +1,21 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Navigation from "./components/Navigation";
+import Home from "./components/Home";
 import Chart from "./components/Chart";
+import Login from "./components/Login";
 import "./App.css";
-
-const router = {
-  future: {
-    v7_relativeSplatPath: true,
-    v7_startTransition: true,
-  },
-};
 
 function App() {
   return (
-    <BrowserRouter {...router}>
+    <BrowserRouter>
+      <Navigation />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/stocks" element={<Home />} />
         <Route path="/chart" element={<Chart />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </BrowserRouter>
-  );
-}
-
-function Home() {
-  return (
-    <div>
-      <h1>Home Page</h1>
-      <a href="/chart">Go to Chart</a>
-    </div>
   );
 }
 
