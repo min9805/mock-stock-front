@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
-import UpbitWebSocket from "./websocket";
+import BybitWebSocket from "./websocket";
 
 class Datafeed {
   constructor() {
@@ -105,22 +105,34 @@ function Chart() {
       seriesRef.current = series;
 
       // 웹소켓 연결 및 메시지 핸들러 설정
-      websocket = new UpbitWebSocket((data) => {
-        if (data) {
-          console.log("candle Stick data:", data);
+      websocket = new BybitWebSocket((data) => {
+        if (data && data.type === "kline") {
+          console.log("Received kline data:", data);
 
-          if (data.isComplete) {
-            // 완성된 봉은 setData로 추가
-            const historicalData = series.data();
-            series.setData([...historicalData, data]);
-          } else {
-            // 진행중인 봉은 update로 업데이트
-            series.update(data);
+          const candleData = {
+            time: data.time,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+          };
+
+          // 유효한 데이터인지 확인
+          if (!Object.values(candleData).some(isNaN)) {
+            console.log("Updating chart with data:", candleData);
+            if (seriesRef.current) {
+              seriesRef.current.update(candleData);
+            }
           }
         }
       });
 
       websocket.connect();
+
+      // 1분봉 구독
+      setTimeout(() => {
+        websocket.subscribe("kline", "BTCUSDT", "1");
+      }, 1000);
 
       const datafeed = new Datafeed();
       const initialData = await datafeed.getBars(200);
@@ -168,10 +180,10 @@ function Chart() {
 
       chart.timeScale().fitContent();
 
-      // Cleanup 수정
       return () => {
         chart.remove();
         if (websocket) {
+          websocket.unsubscribe("kline", "BTCUSDT", "1");
           websocket.disconnect();
         }
       };

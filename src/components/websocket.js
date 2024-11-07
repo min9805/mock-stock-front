@@ -1,10 +1,11 @@
-class UpbitWebSocket {
+class BybitWebSocket {
   constructor(onMessage) {
     this.ws = null;
     this.onMessage = onMessage;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 3000;
+    this.subscriptions = new Set();
   }
 
   connect() {
@@ -18,38 +19,132 @@ class UpbitWebSocket {
     }
   }
 
+  subscribe(type, symbol, interval = "1") {
+    if (!this.isConnected()) {
+      console.error("WebSocket is not connected");
+      return;
+    }
+
+    let channel;
+    if (type === "kline") {
+      channel = `kline.${interval}.${symbol}`;
+    } else if (type === "ticker") {
+      channel = `tickers.${symbol}`;
+    } else {
+      console.error("Invalid subscription type");
+      return;
+    }
+
+    if (this.subscriptions.has(channel)) {
+      console.log(`Already subscribed to ${channel}`);
+      return;
+    }
+
+    const message = {
+      op: "subscribe",
+      args: [channel],
+    };
+
+    this.ws.send(JSON.stringify(message));
+    this.subscriptions.add(channel);
+    console.log(`Subscribed to ${channel}`);
+  }
+
+  unsubscribe(type, symbol, interval = "1") {
+    if (!this.isConnected()) {
+      console.error("WebSocket is not connected");
+      return;
+    }
+
+    let channel;
+    if (type === "kline") {
+      channel = `kline.${interval}.${symbol}`;
+    } else if (type === "ticker") {
+      channel = `tickers.${symbol}`;
+    } else {
+      console.error("Invalid subscription type");
+      return;
+    }
+
+    if (!this.subscriptions.has(channel)) {
+      console.log(`Not subscribed to ${channel}`);
+      return;
+    }
+
+    const message = {
+      op: "unsubscribe",
+      args: [channel],
+    };
+
+    this.ws.send(JSON.stringify(message));
+    this.subscriptions.delete(channel);
+    console.log(`Unsubscribed from ${channel}`);
+  }
+
   setupWebSocketHandlers() {
     this.ws.onopen = () => {
       console.log("WebSocket Connected");
       this.reconnectAttempts = 0;
 
-      const message = {
-        op: "subscribe",
-        args: ["kline.1.BTCUSDT"],
-      };
-
-      this.ws.send(JSON.stringify(message));
-      console.log("Subscription sent");
+      if (this.subscriptions.size > 0) {
+        const message = {
+          op: "subscribe",
+          args: Array.from(this.subscriptions),
+        };
+        console.log("Restoring subscriptions:", message);
+        this.ws.send(JSON.stringify(message));
+      }
     };
 
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log("WebSocket data: ", data);
+        console.log("Received WebSocket data:", data);
 
-        if (data.data && data.topic && data.topic.startsWith("kline")) {
-          const klineData = data.data[0];
-          const transformedData = {
-            time: Math.floor(klineData.start / 1000),
-            open: parseFloat(klineData.open),
-            high: parseFloat(klineData.high),
-            low: parseFloat(klineData.low),
-            close: parseFloat(klineData.close),
-          };
-          this.onMessage(transformedData);
+        // 응답이 구독 성공 메시지인 경우 처리
+        if (data.success !== undefined) {
+          console.log("Subscription message:", data);
+          return;
+        }
+
+        // 실제 데이터 처리
+        if (data.data && data.topic) {
+          // kline 데이터 처리
+          if (data.topic.startsWith("kline")) {
+            const klineData = data.data[0];
+            if (klineData) {
+              const transformedData = {
+                type: "kline",
+                time: Math.floor(klineData.start / 1000),
+                open: parseFloat(klineData.open),
+                high: parseFloat(klineData.high),
+                low: parseFloat(klineData.low),
+                close: parseFloat(klineData.close),
+                volume: parseFloat(klineData.volume),
+                timestamp: klineData.start,
+              };
+              console.log("Transformed kline data:", transformedData);
+              this.onMessage(transformedData);
+            }
+          }
+          // tickers 데이터 처리
+          else if (data.topic.startsWith("tickers")) {
+            const tickerData = data.data;
+            if (tickerData && tickerData.lastPrice) {
+              const transformedData = {
+                type: "ticker",
+                symbol: tickerData.symbol,
+                lastPrice: tickerData.lastPrice,
+                price24hPcnt: tickerData.price24hPcnt,
+              };
+              console.log("Transformed ticker data:", transformedData);
+              this.onMessage(transformedData);
+            }
+          }
         }
       } catch (error) {
         console.error("Error parsing message:", error);
+        console.error("Raw message:", event.data);
       }
     };
 
@@ -82,4 +177,4 @@ class UpbitWebSocket {
   }
 }
 
-export default UpbitWebSocket;
+export default BybitWebSocket;

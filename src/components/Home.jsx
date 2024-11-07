@@ -1,55 +1,90 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import BybitWebSocket from "./websocket";
 
 function Home() {
-  const [popularStocks, setPopularStocks] = useState([]);
+  const [prices, setPrices] = useState({
+    BTC: { price: "0", change: "0%" },
+    ETH: { price: "0", change: "0%" },
+  });
 
   useEffect(() => {
-    // 임시 데이터 - 실제로는 API에서 받아와야 함
-    const mockPopularStocks = [
-      { symbol: "BTCUSDT", name: "비트코인", price: "65000", change: "+2.5%" },
-      { symbol: "ETHUSDT", name: "이더리움", price: "3200", change: "+1.8%" },
-      {
-        symbol: "BNBUSDT",
-        name: "바이낸스코인",
-        price: "420",
-        change: "-0.5%",
-      },
-      { symbol: "SOLUSDT", name: "솔라나", price: "180", change: "+3.2%" },
-      { symbol: "ADAUSDT", name: "에이다", price: "1.2", change: "-1.0%" },
-    ];
+    console.log("Starting WebSocket connection...");
 
-    setPopularStocks(mockPopularStocks);
+    const ws = new BybitWebSocket((data) => {
+      console.log("Received transformed data:", data);
+
+      if (data.type === "ticker" && data.lastPrice && data.price24hPcnt) {
+        const price = parseFloat(data.lastPrice);
+        const change = parseFloat(data.price24hPcnt);
+        const symbol = data.symbol;
+
+        if (!isNaN(price) && !isNaN(change)) {
+          setPrices((prev) => ({
+            ...prev,
+            [symbol.replace("USDT", "")]: {
+              price: price.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
+              change: (change * 100).toFixed(2) + "%",
+            },
+          }));
+        }
+      }
+    });
+
+    ws.connect();
+
+    setTimeout(() => {
+      console.log("Subscribing to tickers...");
+      ws.subscribe("ticker", "BTCUSDT");
+      ws.subscribe("ticker", "ETHUSDT");
+    }, 1000);
+
+    return () => {
+      console.log("Cleaning up WebSocket...");
+      ws.disconnect();
+    };
   }, []);
+
+  const CryptoCard = ({ name, symbol, price, change }) => (
+    <div style={styles.stockCard}>
+      <div style={styles.stockInfo}>
+        <h3 style={styles.stockName}>{name}</h3>
+        <p style={styles.stockSymbol}>{symbol}</p>
+      </div>
+      <div style={styles.priceInfo}>
+        <p style={styles.price}>${price}</p>
+        <p
+          style={{
+            ...styles.change,
+            color: change.startsWith("-") ? "#ef5350" : "#26a69a",
+          }}
+        >
+          {change}
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.container}>
       <div style={styles.content}>
-        <h1 style={styles.title}>실시간 인기 종목</h1>
-        <div style={styles.stockGrid}>
-          {popularStocks.map((stock) => (
-            <Link
-              to={`/chart/${stock.symbol}`}
-              key={stock.symbol}
-              style={styles.stockCard}
-            >
-              <div style={styles.stockInfo}>
-                <h3 style={styles.stockName}>{stock.name}</h3>
-                <p style={styles.stockSymbol}>{stock.symbol}</p>
-              </div>
-              <div style={styles.priceInfo}>
-                <p style={styles.price}>${stock.price}</p>
-                <p
-                  style={{
-                    ...styles.change,
-                    color: stock.change.startsWith("+") ? "#26a69a" : "#ef5350",
-                  }}
-                >
-                  {stock.change}
-                </p>
-              </div>
-            </Link>
-          ))}
+        <h1 style={styles.title}>실시간 코인 가격</h1>
+        <div style={styles.cardsContainer}>
+          <CryptoCard
+            name="비트코인"
+            symbol="BTCUSDT"
+            price={prices.BTC.price}
+            change={prices.BTC.change}
+          />
+          <CryptoCard
+            name="이더리움"
+            symbol="ETHUSDT"
+            price={prices.ETH.price}
+            change={prices.ETH.change}
+          />
         </div>
       </div>
     </div>
@@ -59,8 +94,8 @@ function Home() {
 const styles = {
   container: {
     minHeight: "100vh",
-    backgroundColor: "#f8f9fa",
-    paddingTop: "80px", // 네비게이션 바 높이만큼 여백
+    backgroundColor: "#1e2026",
+    paddingTop: "80px",
   },
   content: {
     maxWidth: "1200px",
@@ -68,59 +103,66 @@ const styles = {
     padding: "2rem",
   },
   title: {
-    fontSize: "2.5rem",
+    fontSize: "3rem",
     fontWeight: "bold",
-    marginBottom: "2rem",
-    color: "#333",
+    marginBottom: "3rem",
+    color: "#ffffff",
+    textAlign: "center",
   },
-  stockGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-    gap: "1.5rem",
+  cardsContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2rem",
+    maxWidth: "900px",
+    margin: "0 auto",
   },
   stockCard: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "1.5rem",
-    backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    textDecoration: "none",
-    color: "inherit",
-    transition: "transform 0.2s, box-shadow 0.2s",
+    padding: "3rem 4rem",
+    backgroundColor: "#2b2f36",
+    borderRadius: "16px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+    transition: "transform 0.2s ease-in-out",
+    cursor: "pointer",
+    minWidth: "700px",
+    gap: "8rem",
     ":hover": {
-      transform: "translateY(-4px)",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      transform: "translateY(-5px)",
     },
   },
   stockInfo: {
     display: "flex",
     flexDirection: "column",
-    gap: "0.5rem",
+    gap: "1rem",
+    flex: "1",
   },
   stockName: {
     margin: 0,
-    fontSize: "1.4rem",
+    fontSize: "1.8rem",
     fontWeight: "bold",
+    color: "#ffffff",
   },
   stockSymbol: {
     margin: 0,
-    color: "#666",
-    fontSize: "1rem",
+    color: "#848e9c",
+    fontSize: "1.2rem",
   },
   priceInfo: {
     textAlign: "right",
+    minWidth: "200px",
   },
   price: {
     margin: 0,
-    fontSize: "1.4rem",
+    fontSize: "2rem",
     fontWeight: "bold",
+    color: "#ffffff",
   },
   change: {
     margin: "0.5rem 0 0 0",
     fontWeight: "500",
-    fontSize: "1rem",
+    fontSize: "1.4rem",
   },
 };
 
