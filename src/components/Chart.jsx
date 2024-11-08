@@ -1,17 +1,19 @@
 import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
-import UpbitWebSocket from "./websocket";
+import BybitWebSocket from "./websocket";
+import { useParams } from "react-router-dom";
 
 class Datafeed {
-  constructor() {
+  constructor(symbol) {
     this.data = [];
     this.lastLoadedTime = Date.now();
+    this.symbol = symbol;
   }
 
   async getBars(count) {
     try {
       const response = await fetch(
-        `https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=1&end=${this.lastLoadedTime}&limit=${count}`
+        `https://api.bybit.com/v5/market/kline?category=linear&symbol=${this.symbol}&interval=1&end=${this.lastLoadedTime}&limit=${count}`
       );
       const result = await response.json();
 
@@ -67,6 +69,7 @@ class Datafeed {
 
 function Chart() {
   const seriesRef = useRef(null);
+  const { symbol } = useParams();
 
   useEffect(() => {
     console.log("Chart useEffect called");
@@ -105,24 +108,33 @@ function Chart() {
       seriesRef.current = series;
 
       // 웹소켓 연결 및 메시지 핸들러 설정
-      websocket = new UpbitWebSocket((data) => {
-        if (data) {
-          console.log("candle Stick data:", data);
+      websocket = new BybitWebSocket((data) => {
+        if (data && data.type === "kline") {
+          const candleData = {
+            time: data.time,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+          };
 
-          if (data.isComplete) {
-            // 완성된 봉은 setData로 추가
-            const historicalData = series.data();
-            series.setData([...historicalData, data]);
-          } else {
-            // 진행중인 봉은 update로 업데이트
-            series.update(data);
+          // 유효한 데이터인지 확인
+          if (!Object.values(candleData).some(isNaN)) {
+            if (seriesRef.current) {
+              seriesRef.current.update(candleData);
+            }
           }
         }
       });
 
       websocket.connect();
 
-      const datafeed = new Datafeed();
+      // 1분봉 구독
+      setTimeout(() => {
+        websocket.subscribe("kline", symbol, "1");
+      }, 1000);
+
+      const datafeed = new Datafeed(symbol);
       const initialData = await datafeed.getBars(200);
 
       if (initialData.length > 0) {
@@ -168,10 +180,10 @@ function Chart() {
 
       chart.timeScale().fitContent();
 
-      // Cleanup 수정
       return () => {
         chart.remove();
         if (websocket) {
+          websocket.unsubscribe("kline", "BTCUSDT", "1");
           websocket.disconnect();
         }
       };

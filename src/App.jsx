@@ -12,7 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/stocks" element={<Home />} />
-        <Route path="/chart" element={<Chart />} />
+        <Route path="/chart/:symbol" element={<Chart />} />
         <Route path="/login" element={<Login />} />
       </Routes>
     </BrowserRouter>
