@@ -1,73 +1,62 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-function Navigation({ userInfo }) {
+function Navigation({ userInfo, setUserInfo }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // 로컬 스토리지에서 토큰 제거
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+
+    // 유저 정보 초기화
+    setUserInfo(null);
+
+    // 홈으로 이동
+    navigate('/');
+  };
+
   return (
-    <nav style={styles.nav}>
-      <div style={styles.container}>
-        <ul style={styles.navList}>
-          <li>
-            <Link to="/" style={styles.link}>
-              홈
-            </Link>
-          </li>
-          <li>
-            <Link to="/stocks" style={styles.link}>
-              주식 골라보기
-            </Link>
-          </li>
-          {userInfo.email ? (
-            <li>
-              <Link to="/account" style={styles.link}>
-                내 계좌
+    <nav style={{
+      padding: '1rem',
+      backgroundColor: '#f8f9fa',
+      borderBottom: '1px solid #ddd'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        <Link to="/" style={{ textDecoration: 'none', color: '#333' }}>
+          <h1 style={{ margin: 0 }}>거래소</h1>
+        </Link>
+        <div>
+          {userInfo ? (
+            <>
+              <span style={{ marginRight: '1rem' }}>{userInfo.email}</span>
+              <Link to="/account" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
+                계좌
               </Link>
-            </li>
+              <Link to="/chart" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
+                차트
+              </Link>
+              <button onClick={handleLogout}>로그아웃</button>
+            </>
           ) : (
-            <li>
-              <Link to="/login" style={styles.link}>
+            <>
+              <Link to="/login" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
                 로그인
               </Link>
-            </li>
+              <Link to="/register" style={{ textDecoration: 'none', color: '#333' }}>
+                회원가입
+              </Link>
+            </>
           )}
-        </ul>
+        </div>
       </div>
     </nav>
   );
 }
-
-const styles = {
-  nav: {
-    backgroundColor: "#ffffff",
-    borderBottom: "1px solid #e0e0e0",
-    padding: "1rem 0",
-    position: "fixed",
-    width: "100%",
-    top: 0,
-    zIndex: 1000,
-  },
-  container: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-    padding: "0 2rem",
-  },
-  navList: {
-    display: "flex",
-    gap: "2rem",
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-  },
-  link: {
-    textDecoration: "none",
-    color: "#333",
-    fontSize: "1rem",
-    fontWeight: "500",
-    padding: "0.5rem 1rem",
-    borderRadius: "4px",
-    transition: "background-color 0.2s",
-    ":hover": {
-      backgroundColor: "#f5f5f5",
-    },
-  },
-};
 
 export default Navigation;
