@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 import BybitWebSocket from "./websocket";
 import { useParams } from "react-router-dom";
+import OrderForm from './OrderForm';
 
 class Datafeed {
   constructor(symbol) {
@@ -67,7 +68,7 @@ class Datafeed {
   }
 }
 
-function Chart() {
+function Chart({ userInfo }) {
   const seriesRef = useRef(null);
   const { symbol } = useParams();
 
@@ -195,11 +196,9 @@ function Chart() {
   }, []);
 
   return (
-    <div className="chart-page">
-      <div
-        id="chart-container"
-        style={{ width: "100%", height: "600px" }}
-      ></div>
+    <div className="chart-page" style={{ display: 'flex', gap: '20px', padding: '20px' }}>
+      <div id="chart-container" style={{ flex: 2 }}></div>
+      <OrderForm userInfo={userInfo} />
     </div>
   );
 }

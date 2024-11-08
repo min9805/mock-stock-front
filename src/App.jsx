@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navigation from "./components/Navigation";
 import Home from "./components/Home";
-import Chart from "./components/Chart";
+import Chart from "./components/BybitChart";
 import Login from "./components/Login";
 import Account from "./components/Account";
 import "./App.css";
@@ -12,19 +12,15 @@ function App() {
     accessToken: null,
     refreshToken: null
   });
-  const [userInfo, setUserInfo] = useState({
-    email: null,
-    name: null,
-    userRole: null
-  });
+  const [userInfo, setUserInfo] = useState(null);
 
   return (
     <Router>
-      <Navigation userInfo={userInfo} />
+      <Navigation userInfo={userInfo} setUserInfo={setUserInfo} />
       <Routes>
         <Route path="/" element={<Home authToken={authToken} />} />
         <Route path="/stocks" element={<Home />} />
-        <Route path="/chart/:symbol" element={<Chart />} />
+        <Route path="/chart/:symbol" element={<Chart userInfo={userInfo} />} />
         <Route
           path="/login"
           element={
