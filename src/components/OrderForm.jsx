@@ -26,7 +26,7 @@ function OrderForm({ userInfo }) {
                 // 응답 데이터 구조 확인
                 console.log('Account Response:', response.data);
 
-                // 응답 데이터가 accounts 배열 안에 있는 경우
+                // 응답 데이터가 accounts 배열 안에 는 경우
                 if (response.data.accounts && response.data.accounts.length > 0) {
                     setAccountInfo(response.data.accounts[0]);
                 } else if (response.data.account) {
@@ -56,7 +56,7 @@ function OrderForm({ userInfo }) {
                 const price = parseFloat(response.data.result.list[0].lastPrice);
                 setCurrentPrice(price);
             } catch (error) {
-                console.error('현재 가격 조회 실패:', error);
+                console.error('현재 가격 조회 패:', error);
             }
         };
 
@@ -73,10 +73,12 @@ function OrderForm({ userInfo }) {
         const maxBtcAmount = (availableUSD * 0.9) / currentPrice;
         const btcAmount = maxBtcAmount * (percentage / 100);
 
-        setAmount(btcAmount.toFixed(8));
+        // 소수점 6자리로 제한된 BTC 수량
+        setAmount(btcAmount.toFixed(6));
         setOrderInfo({
-            btcAmount: btcAmount,
-            totalPrice: btcAmount * currentPrice,
+            btcAmount: Number(btcAmount.toFixed(6)),
+            // 예상 주문 금액은 소수점 2자리로 제한
+            totalPrice: Number((Number(btcAmount.toFixed(6)) * currentPrice).toFixed(2)),
             currentPrice: currentPrice
         });
     };
@@ -93,17 +95,32 @@ function OrderForm({ userInfo }) {
 
     const handleOrder = async (e) => {
         e.preventDefault();
+
+        // 수량 유효성 검사 수정
         if (!amount || isNaN(amount) || amount <= 0) {
             alert('유효한 금액을 입력해주세요.');
             return;
         }
 
+        // 소수점 6자리로 제한
+        const formattedAmount = Number(parseFloat(amount).toFixed(6));
+
         try {
             const accessToken = localStorage.getItem('accessToken');
-            await axios.post(`${API_BASE_URL}/api/v1/order`, {
-                type: orderType,
-                amount: parseFloat(amount)
-            }, {
+            const orderRequest = {
+                symbol: 'BTCUSDT',
+                accountNumber: accountInfo.accountNumber,
+                quantity: formattedAmount,  // 포맷된 수량 사용
+                price: orderMethod === 'limit' ? parseFloat(price) : null,
+                orderType: orderMethod.toUpperCase()
+            };
+
+            // 주문 유형에 따라 다른 엔드포인트 사용
+            const endpoint = orderMethod === 'market'
+                ? `${API_BASE_URL}/api/v1/order/buy/market`
+                : `${API_BASE_URL}/api/v1/order/buy/limit`;
+
+            await axios.post(endpoint, orderRequest, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
@@ -118,10 +135,22 @@ function OrderForm({ userInfo }) {
             setAccountInfo(accountResponse.data);
             setAmount('');
             setOrderInfo(null);
-            alert(`${orderType === 'buy' ? '매수' : '매도'} 주문이 완료되었습니다.`);
+            alert('매수 주문이 완료되었습니다.');
         } catch (error) {
             console.error('주문 실패:', error);
             alert('주문에 실패했습니다.');
+        }
+    };
+
+    // 수량 입력 필드에 이벤트 핸들러 추가
+    const handleAmountChange = (e) => {
+        const value = e.target.value;
+
+        // 소수점 6자리까지만 입력 허용하는 정규식
+        const regex = /^\d*\.?\d{0,6}$/;
+
+        if (value === '' || regex.test(value)) {
+            setAmount(value);
         }
     };
 
@@ -200,7 +229,9 @@ function OrderForm({ userInfo }) {
                 <input
                     type="number"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={handleAmountChange}
+                    step="0.000001"  // 최소 입력 단위를 0.000001로 설정
+                    min="0"
                     placeholder="수량을 입력하세요"
                     style={{
                         width: '100%',
