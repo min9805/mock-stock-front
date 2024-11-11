@@ -5,6 +5,7 @@ import Home from "./components/Home";
 import Chart from "./components/BybitChart";
 import Login from "./components/Login";
 import Account from "./components/Account";
+import StockExplorer from "./components/StockExplorer";
 import "./App.css";
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
           }
         />
         <Route path="/account" element={<Account userInfo={userInfo} />} />
+        <Route path="/stock-explorer" element={<StockExplorer userInfo={userInfo} />} />
       </Routes>
     </Router>
   );

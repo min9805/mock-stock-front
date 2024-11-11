@@ -11,7 +11,7 @@ class BybitWebSocket {
   connect() {
     try {
       console.log("Connecting to Bybit WebSocket...");
-      this.ws = new WebSocket("wss://stream.bybit.com/v5/public/linear");
+      this.ws = new WebSocket("wss://stream.bybit.com/v5/public/spot");
       this.setupWebSocketHandlers();
     } catch (error) {
       console.error("WebSocket connection error:", error);

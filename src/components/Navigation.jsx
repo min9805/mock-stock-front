@@ -35,11 +35,11 @@ function Navigation({ userInfo, setUserInfo }) {
           {userInfo ? (
             <>
               <span style={{ marginRight: '1rem' }}>{userInfo.email}</span>
+              <Link to="/stock-explorer" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
+                종목 골라보기
+              </Link>
               <Link to="/account" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
                 계좌
-              </Link>
-              <Link to="/chart" style={{ marginRight: '1rem', textDecoration: 'none', color: '#333' }}>
-                차트
               </Link>
               <button onClick={handleLogout}>로그아웃</button>
             </>
