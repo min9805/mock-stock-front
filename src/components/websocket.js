@@ -134,6 +134,8 @@ class BybitWebSocket {
                 symbol: tickerData.symbol,
                 lastPrice: tickerData.lastPrice,
                 price24hPcnt: tickerData.price24hPcnt,
+                volume24h: tickerData.volume24h,
+                turnover24h: tickerData.turnover24h
               };
               this.onMessage(transformedData);
             }

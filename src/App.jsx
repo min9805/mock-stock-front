@@ -32,7 +32,7 @@ function App() {
           }
         />
         <Route path="/account" element={<Account userInfo={userInfo} />} />
-        <Route path="/stock-explorer" element={<StockExplorer userInfo={userInfo} />} />
+        <Route path="/stock-explorer" element={<StockExplorer userInfo={userInfo} authToken={authToken} />} />
       </Routes>
     </Router>
   );
